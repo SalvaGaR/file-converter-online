@@ -380,3 +380,40 @@ input[type="text"] {
   padding: var(--gap);
   margin-bottom: var(--gap);
 }
+
+/* ── Waveform container (WaveSurfer) ─────────────────────── */
+
+.waveform-container {
+  border: var(--border);
+  margin-bottom: var(--gap);
+  background: var(--white);
+  min-height: 80px;
+  overflow: hidden;
+}
+
+/* ── PDF preview thumbnails ──────────────────────────────── */
+
+.pdf-preview-container {
+  border: var(--border);
+  padding: var(--gap);
+  margin-bottom: var(--gap);
+  max-height: 420px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--white);
+}
+
+.pdf-preview-container canvas {
+  max-width: 100%;
+  border: 1px solid #ccc;
+  display: block;
+}
+
+/* ── Active PDF action button ────────────────────────────── */
+
+.grid-btn.active {
+  background: var(--white);
+  color: var(--black);
+}
