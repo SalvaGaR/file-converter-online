@@ -1,0 +1,220 @@
+/* ============================================================
+   MINIMALIST BRUTALISM
+   — black & white, thick borders, system fonts, no rounding
+   ============================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --black: #000;
+  --white: #fff;
+  --border: 3px solid #000;
+  --gap: 1.5rem;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  background: var(--white);
+  color: var(--black);
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.4;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+
+header {
+  border-bottom: var(--border);
+  padding: var(--gap);
+}
+
+header h1 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-top: 0.25rem;
+  letter-spacing: 0.08em;
+}
+
+/* ── Main ────────────────────────────────────────────────── */
+
+main {
+  flex: 1;
+  padding: var(--gap);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--gap) * 2);
+  max-width: 760px;
+}
+
+section h2 {
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-bottom: var(--border);
+  padding-bottom: 0.4rem;
+  margin-bottom: var(--gap);
+}
+
+/* ── Drop zone ───────────────────────────────────────────── */
+
+#drop-zone {
+  border: var(--border);
+  border-style: dashed;
+  border-width: 4px;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 900;
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+  transition: background 0.1s;
+}
+
+#drop-zone:hover,
+#drop-zone.drag-over {
+  background: var(--black);
+  color: var(--white);
+}
+
+#drop-zone input[type="file"] {
+  display: none;
+}
+
+#file-info {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-left: 4px solid var(--black);
+  padding-left: 0.75rem;
+}
+
+/* ── Form fields ─────────────────────────────────────────── */
+
+.field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: var(--gap);
+}
+
+label {
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+input[type="number"],
+select {
+  border: var(--border);
+  padding: 0.5rem 0.6rem;
+  font-size: 1rem;
+  font-family: inherit;
+  background: var(--white);
+  color: var(--black);
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 0;
+  width: 100%;
+  max-width: 360px;
+}
+
+select {
+  cursor: pointer;
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+
+button,
+a.hidden,
+#download-link {
+  display: inline-block;
+  border: var(--border);
+  padding: 0.7rem 1.4rem;
+  font-size: 1rem;
+  font-weight: 900;
+  font-family: inherit;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: var(--black);
+  color: var(--white);
+  text-decoration: none;
+  border-radius: 0;
+  transition: background 0.1s, color 0.1s;
+}
+
+button:hover,
+#download-link:hover {
+  background: var(--white);
+  color: var(--black);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Progress bar ────────────────────────────────────────── */
+
+#progress-bar-container {
+  border: var(--border);
+  height: 1.4rem;
+  width: 100%;
+  max-width: 480px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+#progress-bar {
+  height: 100%;
+  background: var(--black);
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+/* ── Status / result ─────────────────────────────────────── */
+
+#status-msg {
+  font-weight: 700;
+  margin-bottom: 1rem;
+  min-height: 1.4rem;
+}
+
+#download-link {
+  margin-bottom: 1rem;
+}
+
+/* ── Footer ──────────────────────────────────────────────── */
+
+footer {
+  border-top: var(--border);
+  padding: 1rem var(--gap);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ── Utilities ───────────────────────────────────────────── */
+
+.hidden {
+  display: none !important;
+}
