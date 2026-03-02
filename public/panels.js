@@ -118,10 +118,21 @@ function renderAudioPanel(file) {
 
     durInfo.textContent = 'DURATION: ' + _formatTime(dur);
 
-    // Simulated info based on file size and duration
+    // Estimated bitrate from file size and duration
     const bitrateKbps = dur > 0 ? Math.round((file.size * 8) / dur / 1000) : 0;
     brInfo.textContent = 'BITRATE: ~' + bitrateKbps + ' KBPS';
-    srInfo.textContent = 'SAMPLE RATE: ~44100 HZ';
+
+    // Attempt to read actual sample rate via Web Audio API
+    srInfo.textContent = 'SAMPLE RATE: —';
+    file.arrayBuffer().then(function (buf) {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      return ctx.decodeAudioData(buf).then(function (decoded) {
+        srInfo.textContent = 'SAMPLE RATE: ' + decoded.sampleRate + ' HZ';
+        ctx.close();
+      });
+    }).catch(function () {
+      srInfo.textContent = 'SAMPLE RATE: N/A';
+    });
   });
 
   trimStart.oninput = function () {
