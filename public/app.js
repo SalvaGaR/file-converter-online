@@ -11,10 +11,12 @@ const VIDEO_MIME_PREFIXES = ['video/'];
 const AUDIO_MIME_PREFIXES = ['audio/'];
 
 function getFileCategory(mimeType) {
+  if (!mimeType) return 'generic';
+  if (mimeType === 'application/pdf') return 'pdf';
   if (IMAGE_MIME_PREFIXES.some((p) => mimeType.startsWith(p))) return 'image';
   if (VIDEO_MIME_PREFIXES.some((p) => mimeType.startsWith(p))) return 'video';
   if (AUDIO_MIME_PREFIXES.some((p) => mimeType.startsWith(p))) return 'audio';
-  return null;
+  return 'generic';
 }
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
@@ -24,6 +26,7 @@ const fileInput = document.getElementById('file-input');
 const fileInfo = document.getElementById('file-info');
 
 const optionsSection = document.getElementById('options-section');
+const editSection = document.getElementById('edit-section');
 const targetFormatSelect = document.getElementById('target-format');
 const imageOptions = document.getElementById('image-options');
 const videoOptions = document.getElementById('video-options');
@@ -72,19 +75,21 @@ fileInput.addEventListener('change', () => {
 
 function handleFileSelected(file) {
   const category = getFileCategory(file.type);
-  if (!category) {
-    alert('Unsupported file type. Please upload an image, video, or audio file.');
-    return;
-  }
 
   selectedFile = file;
   fileCategory = category;
 
-  fileInfo.textContent = `Selected: ${file.name} (${formatBytes(file.size)}) — ${file.type}`;
+  fileInfo.textContent = `Selected: ${file.name} (${formatBytes(file.size)}) — ${file.type || 'unknown'}`;
   fileInfo.classList.remove('hidden');
 
-  populateFormats(category);
-  showOptionsSection(category);
+  showEditPanel(category, file);
+
+  if (category === 'image' || category === 'video' || category === 'audio') {
+    populateFormats(category);
+    showOptionsSection(category);
+  } else {
+    optionsSection.classList.add('hidden');
+  }
 }
 
 function formatBytes(bytes) {
@@ -217,6 +222,8 @@ resetBtn.addEventListener('click', () => {
   fileCategory = null;
   fileInput.value = '';
   fileInfo.classList.add('hidden');
+  editSection.classList.add('hidden');
+  cleanupPanels();
   optionsSection.classList.add('hidden');
   resultSection.classList.add('hidden');
   progressBarContainer.classList.add('hidden');

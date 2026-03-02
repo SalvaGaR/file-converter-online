@@ -218,3 +218,165 @@ footer {
 .hidden {
   display: none !important;
 }
+
+/* ── Edit & Preview panels ──────────────────────────────── */
+
+.edit-panel {
+  margin-bottom: var(--gap);
+}
+
+/* Preview image */
+#preview-image {
+  display: block;
+  max-width: 100%;
+  border: var(--border);
+  margin-bottom: var(--gap);
+}
+
+/* Preview video */
+#preview-video {
+  display: block;
+  max-width: 100%;
+  border: var(--border);
+  margin-bottom: var(--gap);
+  background: var(--black);
+}
+
+/* ── Slider (range input) ────────────────────────────────── */
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  max-width: 360px;
+  height: 6px;
+  background: var(--black);
+  border: none;
+  outline: none;
+  margin: 0.4rem 0;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--white);
+  border: var(--border);
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--white);
+  border: var(--border);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.slider-value {
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+/* ── Text inputs (metadata, page range) ──────────────────── */
+
+input[type="text"] {
+  border: var(--border);
+  padding: 0.5rem 0.6rem;
+  font-size: 1rem;
+  font-family: inherit;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--white);
+  color: var(--black);
+  border-radius: 0;
+  width: 100%;
+  max-width: 360px;
+}
+
+/* ── Controls row (transport buttons) ────────────────────── */
+
+.controls-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: var(--gap);
+}
+
+.ctrl-btn {
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+}
+
+/* ── Info panel / text ───────────────────────────────────── */
+
+.info-panel {
+  border-left: 4px solid var(--black);
+  padding-left: 0.75rem;
+  margin-bottom: var(--gap);
+}
+
+.info-text {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+/* ── Metadata form ───────────────────────────────────────── */
+
+.metadata-form {
+  border: var(--border);
+  padding: var(--gap);
+}
+
+/* ── PDF options grid ────────────────────────────────────── */
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: var(--gap);
+}
+
+.grid-btn {
+  width: 100%;
+  text-align: center;
+}
+
+.sub-drop-zone {
+  border: 4px dashed var(--black);
+  padding: 2rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 900;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: var(--gap);
+  transition: background 0.1s;
+}
+
+.sub-drop-zone:hover {
+  background: var(--black);
+  color: var(--white);
+}
+
+.sub-drop-zone input[type="file"] {
+  display: none;
+}
+
+/* ── Generic file icon ───────────────────────────────────── */
+
+.file-icon {
+  font-size: 5rem;
+  line-height: 1;
+  text-align: center;
+  border: var(--border);
+  padding: var(--gap);
+  margin-bottom: var(--gap);
+}

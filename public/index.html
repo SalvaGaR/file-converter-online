@@ -9,7 +9,7 @@
 <body>
   <header>
     <h1>FILE CONVERTER</h1>
-    <p class="subtitle">CONVERT &amp; COMPRESS IMAGES, VIDEO, AND AUDIO</p>
+    <p class="subtitle">CONVERT &amp; MANIPULATE ANY FILE</p>
   </header>
 
   <main>
@@ -23,9 +23,120 @@
       <p id="file-info" class="hidden"></p>
     </section>
 
-    <!-- Step 2: Options -->
+    <!-- Step 2: Edit & Preview -->
+    <section id="edit-section" class="hidden">
+      <h2>02 — EDIT & PREVIEW</h2>
+
+      <!-- Image panel -->
+      <div id="panel-image" class="edit-panel hidden">
+        <img id="preview-image" alt="PREVIEW" />
+        <div class="field-row">
+          <label for="compress-slider">COMPRESSION QUALITY</label>
+          <input type="range" id="compress-slider" min="0" max="100" value="80" />
+          <span id="compress-value" class="slider-value">80</span>
+        </div>
+        <p id="estimated-size" class="info-text"></p>
+      </div>
+
+      <!-- Audio panel -->
+      <div id="panel-audio" class="edit-panel hidden">
+        <audio id="preview-audio" preload="metadata"></audio>
+        <div id="audio-controls" class="controls-row">
+          <button type="button" id="audio-play" class="ctrl-btn">PLAY</button>
+          <button type="button" id="audio-pause" class="ctrl-btn">PAUSE</button>
+          <button type="button" id="audio-stop" class="ctrl-btn">STOP</button>
+        </div>
+        <div class="field-row">
+          <label for="audio-trim-start">TRIM START (s)</label>
+          <input type="range" id="audio-trim-start" min="0" max="100" step="0.1" value="0" />
+          <span id="audio-trim-start-val" class="slider-value">0.0</span>
+        </div>
+        <div class="field-row">
+          <label for="audio-trim-end">TRIM END (s)</label>
+          <input type="range" id="audio-trim-end" min="0" max="100" step="0.1" value="100" />
+          <span id="audio-trim-end-val" class="slider-value">0.0</span>
+        </div>
+        <div id="audio-info" class="info-panel">
+          <p id="audio-duration-info" class="info-text"></p>
+          <p id="audio-bitrate-info" class="info-text"></p>
+          <p id="audio-samplerate-info" class="info-text"></p>
+        </div>
+        <div id="audio-metadata" class="metadata-form">
+          <div class="field-row">
+            <label for="meta-title">TITLE</label>
+            <input type="text" id="meta-title" />
+          </div>
+          <div class="field-row">
+            <label for="meta-artist">ARTIST</label>
+            <input type="text" id="meta-artist" />
+          </div>
+          <div class="field-row">
+            <label for="meta-album">ALBUM</label>
+            <input type="text" id="meta-album" />
+          </div>
+          <div class="field-row">
+            <label for="meta-year">YEAR</label>
+            <input type="text" id="meta-year" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Video panel -->
+      <div id="panel-video" class="edit-panel hidden">
+        <video id="preview-video" preload="metadata"></video>
+        <div class="field-row">
+          <label for="video-trim-start">TRIM START (s)</label>
+          <input type="range" id="video-trim-start" min="0" max="100" step="0.1" value="0" />
+          <span id="video-trim-start-val" class="slider-value">0.0</span>
+        </div>
+        <div class="field-row">
+          <label for="video-trim-end">TRIM END (s)</label>
+          <input type="range" id="video-trim-end" min="0" max="100" step="0.1" value="100" />
+          <span id="video-trim-end-val" class="slider-value">0.0</span>
+        </div>
+      </div>
+
+      <!-- PDF panel -->
+      <div id="panel-pdf" class="edit-panel hidden">
+        <div id="pdf-options-grid" class="options-grid">
+          <button type="button" class="grid-btn" data-action="pdf-to-word">CONVERT TO WORD</button>
+          <button type="button" class="grid-btn" data-action="pdf-to-images">CONVERT TO IMAGES</button>
+          <button type="button" class="grid-btn" data-action="pdf-compress">COMPRESS PDF</button>
+          <button type="button" class="grid-btn" data-action="pdf-merge">MERGE PDFS</button>
+          <button type="button" class="grid-btn" data-action="pdf-extract">EXTRACT PAGES</button>
+        </div>
+        <div id="pdf-merge-zone" class="hidden">
+          <div id="pdf-drop-zone" class="sub-drop-zone" role="button" tabindex="0">
+            <span>DROP SECOND PDF HERE</span>
+            <input type="file" id="pdf-merge-input" accept="application/pdf" />
+          </div>
+        </div>
+        <div id="pdf-extract-range" class="hidden">
+          <div class="field-row">
+            <label for="page-range">PAGE RANGE (e.g. 1-5)</label>
+            <input type="text" id="page-range" placeholder="1-5" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Generic panel -->
+      <div id="panel-generic" class="edit-panel hidden">
+        <div id="generic-icon" class="file-icon">📄</div>
+        <div id="generic-info" class="info-panel">
+          <p id="generic-name" class="info-text"></p>
+          <p id="generic-ext" class="info-text"></p>
+          <p id="generic-size" class="info-text"></p>
+        </div>
+        <div class="controls-row">
+          <button type="button" id="btn-zip" class="ctrl-btn">COMPRESS TO .ZIP</button>
+          <button type="button" id="btn-base64" class="ctrl-btn">CONVERT TO BASE64</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 3: Options -->
     <section id="options-section" class="hidden">
-      <h2>02 — CONVERSION OPTIONS</h2>
+      <h2>03 — CONVERSION OPTIONS</h2>
 
       <div class="field-row">
         <label for="target-format">TARGET FORMAT</label>
@@ -67,9 +178,9 @@
       <button id="convert-btn">CONVERT</button>
     </section>
 
-    <!-- Step 3: Progress / Result -->
+    <!-- Step 4: Progress / Result -->
     <section id="result-section" class="hidden">
-      <h2>03 — RESULT</h2>
+      <h2>04 — RESULT</h2>
       <div id="progress-bar-container" class="hidden">
         <div id="progress-bar"></div>
       </div>
@@ -83,6 +194,7 @@
     <p>FILE CONVERTER — OPEN SOURCE</p>
   </footer>
 
+  <script src="panels.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
