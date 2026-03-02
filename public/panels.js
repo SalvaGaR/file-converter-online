@@ -3,6 +3,7 @@
 // ── Object URL tracking for cleanup ──────────────────────────────────────────
 
 const _objectURLs = [];
+let _waveSurfer = null;
 
 function _createURL(file) {
   const url = URL.createObjectURL(file);
@@ -14,10 +15,16 @@ function cleanupPanels() {
   _objectURLs.forEach((u) => URL.revokeObjectURL(u));
   _objectURLs.length = 0;
 
-  const audio = document.getElementById('preview-audio');
+  if (_waveSurfer) {
+    _waveSurfer.destroy();
+    _waveSurfer = null;
+  }
+
   const video = document.getElementById('preview-video');
-  if (audio) { audio.pause(); audio.removeAttribute('src'); audio.load(); }
   if (video) { video.pause(); video.removeAttribute('src'); video.load(); }
+
+  const pdfPreview = document.getElementById('pdf-preview');
+  if (pdfPreview) pdfPreview.innerHTML = '';
 }
 
 // ── Panel visibility ─────────────────────────────────────────────────────────
@@ -82,11 +89,10 @@ function renderImagePanel(file) {
   slider.oninput = updateEstimate;
 }
 
-// ── Audio panel ──────────────────────────────────────────────────────────────
+// ── Audio panel (WaveSurfer waveform) ────────────────────────────────────────
 
 function renderAudioPanel(file) {
   const panel = document.getElementById('panel-audio');
-  const audio = document.getElementById('preview-audio');
   const playBtn = document.getElementById('audio-play');
   const pauseBtn = document.getElementById('audio-pause');
   const stopBtn = document.getElementById('audio-stop');
@@ -100,14 +106,30 @@ function renderAudioPanel(file) {
   const metaTitle = document.getElementById('meta-title');
 
   panel.classList.remove('hidden');
-  audio.src = _createURL(file);
-
-  // Default metadata title to file name
   metaTitle.value = file.name.replace(/\.[^.]+$/, '');
 
-  audio.addEventListener('loadedmetadata', function onMeta() {
-    audio.removeEventListener('loadedmetadata', onMeta);
-    const dur = audio.duration || 0;
+  // Destroy any previous WaveSurfer instance
+  if (_waveSurfer) {
+    _waveSurfer.destroy();
+    _waveSurfer = null;
+  }
+
+  _waveSurfer = WaveSurfer.create({
+    container: '#waveform',
+    waveColor: '#000000',
+    progressColor: '#555555',
+    cursorColor: '#000000',
+    height: 80,
+    barWidth: 2,
+    responsive: true,
+    hideScrollbar: true,
+  });
+
+  const audioUrl = _createURL(file);
+  _waveSurfer.load(audioUrl);
+
+  _waveSurfer.on('ready', function () {
+    const dur = _waveSurfer.getDuration();
 
     trimStart.max = dur;
     trimEnd.max = dur;
@@ -117,22 +139,29 @@ function renderAudioPanel(file) {
     trimEndVal.textContent = dur.toFixed(1);
 
     durInfo.textContent = 'DURATION: ' + _formatTime(dur);
-
-    // Estimated bitrate from file size and duration
     const bitrateKbps = dur > 0 ? Math.round((file.size * 8) / dur / 1000) : 0;
     brInfo.textContent = 'BITRATE: ~' + bitrateKbps + ' KBPS';
+  });
 
-    // Attempt to read actual sample rate via Web Audio API
-    srInfo.textContent = 'SAMPLE RATE: —';
-    file.arrayBuffer().then(function (buf) {
-      var ctx = new (window.AudioContext || window.webkitAudioContext)();
-      return ctx.decodeAudioData(buf).then(function (decoded) {
-        srInfo.textContent = 'SAMPLE RATE: ' + decoded.sampleRate + ' HZ';
-        ctx.close();
-      });
-    }).catch(function () {
-      srInfo.textContent = 'SAMPLE RATE: N/A';
+  _waveSurfer.on('audioprocess', function (time) {
+    const end = parseFloat(trimEnd.value);
+    if (time >= end) {
+      _waveSurfer.pause();
+      const dur = _waveSurfer.getDuration();
+      if (dur > 0) _waveSurfer.seekTo(end / dur);
+    }
+  });
+
+  // Get sample rate via Web Audio API
+  srInfo.textContent = 'SAMPLE RATE: —';
+  file.arrayBuffer().then(function (buf) {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    return ctx.decodeAudioData(buf).then(function (decoded) {
+      srInfo.textContent = 'SAMPLE RATE: ' + decoded.sampleRate + ' HZ';
+      ctx.close();
     });
+  }).catch(function () {
+    srInfo.textContent = 'SAMPLE RATE: N/A';
   });
 
   trimStart.oninput = function () {
@@ -142,25 +171,20 @@ function renderAudioPanel(file) {
     trimEndVal.textContent = parseFloat(this.value).toFixed(1);
   };
 
-  // Transport controls
   playBtn.onclick = function () {
     const start = parseFloat(trimStart.value);
-    if (audio.currentTime < start) audio.currentTime = start;
-    audio.play();
-  };
-  pauseBtn.onclick = function () { audio.pause(); };
-  stopBtn.onclick = function () {
-    audio.pause();
-    audio.currentTime = parseFloat(trimStart.value);
-  };
-
-  // Respect trim end point
-  audio.ontimeupdate = function () {
-    const end = parseFloat(trimEnd.value);
-    if (audio.currentTime >= end) {
-      audio.pause();
-      audio.currentTime = end;
+    const dur = _waveSurfer.getDuration();
+    if (dur > 0 && _waveSurfer.getCurrentTime() < start) {
+      _waveSurfer.seekTo(start / dur);
     }
+    _waveSurfer.play();
+  };
+  pauseBtn.onclick = function () { _waveSurfer.pause(); };
+  stopBtn.onclick = function () {
+    _waveSurfer.stop();
+    const start = parseFloat(trimStart.value);
+    const dur = _waveSurfer.getDuration();
+    if (dur > 0) _waveSurfer.seekTo(start / dur);
   };
 }
 
@@ -213,19 +237,62 @@ function renderVideoPanel(file) {
   };
 }
 
-// ── PDF panel ────────────────────────────────────────────────────────────────
+// ── PDF panel (pdf.js preview + pdf-lib actions) ─────────────────────────────
 
-function renderPdfPanel(_file) {
+async function renderPdfPanel(file) {
   const panel = document.getElementById('panel-pdf');
   const mergeZone = document.getElementById('pdf-merge-zone');
   const extractRange = document.getElementById('pdf-extract-range');
   const mergeInput = document.getElementById('pdf-merge-input');
   const pdfDropZone = document.getElementById('pdf-drop-zone');
+  const pdfPreview = document.getElementById('pdf-preview');
 
   panel.classList.remove('hidden');
   mergeZone.classList.add('hidden');
   extractRange.classList.add('hidden');
+  window._selectedPdfAction = null;
 
+  // Render PDF preview with pdf.js
+  if (typeof pdfjsLib !== 'undefined' && pdfPreview) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    pdfPreview.innerHTML = '<p class="info-text">LOADING PREVIEW…</p>';
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      pdfPreview.innerHTML = '';
+
+      const pageCount = document.createElement('p');
+      pageCount.className = 'info-text';
+      pageCount.textContent = `PDF: ${pdf.numPages} PAGE${pdf.numPages !== 1 ? 'S' : ''}`;
+      pdfPreview.appendChild(pageCount);
+
+      const numToRender = Math.min(pdf.numPages, 5);
+      for (let i = 1; i <= numToRender; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 0.6 });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        canvas.title = `Page ${i}`;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+        pdfPreview.appendChild(canvas);
+      }
+
+      if (pdf.numPages > 5) {
+        const more = document.createElement('p');
+        more.className = 'info-text';
+        more.textContent = `… AND ${pdf.numPages - 5} MORE PAGE${pdf.numPages - 5 !== 1 ? 'S' : ''}`;
+        pdfPreview.appendChild(more);
+      }
+    } catch (previewErr) {
+      console.warn('PDF preview error:', previewErr);
+      pdfPreview.innerHTML = '<p class="info-text">COULD NOT RENDER PREVIEW.</p>';
+    }
+  }
+
+  // Wire up action buttons
   const grid = document.getElementById('pdf-options-grid');
   grid.onclick = function (e) {
     const btn = e.target.closest('[data-action]');
@@ -234,6 +301,10 @@ function renderPdfPanel(_file) {
     mergeZone.classList.add('hidden');
     extractRange.classList.add('hidden');
 
+    grid.querySelectorAll('.grid-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    window._selectedPdfAction = btn.dataset.action;
+
     if (btn.dataset.action === 'pdf-merge') {
       mergeZone.classList.remove('hidden');
     } else if (btn.dataset.action === 'pdf-extract') {
@@ -241,7 +312,6 @@ function renderPdfPanel(_file) {
     }
   };
 
-  // Wire up the merge drop zone click
   pdfDropZone.onclick = function () { mergeInput.click(); };
 }
 
