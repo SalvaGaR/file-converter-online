@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FILE CONVERTER</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>FILE CONVERTER</h1>
+    <p class="subtitle">CONVERT &amp; COMPRESS IMAGES, VIDEO, AND AUDIO</p>
+  </header>
+
+  <main>
+    <!-- Step 1: Upload -->
+    <section id="upload-section">
+      <h2>01 — UPLOAD FILE</h2>
+      <div id="drop-zone" role="button" tabindex="0" aria-label="Drop file here or click to select">
+        <span id="drop-label">DROP FILE HERE OR CLICK TO SELECT</span>
+        <input type="file" id="file-input" aria-label="Select file" />
+      </div>
+      <p id="file-info" class="hidden"></p>
+    </section>
+
+    <!-- Step 2: Options -->
+    <section id="options-section" class="hidden">
+      <h2>02 — CONVERSION OPTIONS</h2>
+
+      <div class="field-row">
+        <label for="target-format">TARGET FORMAT</label>
+        <select id="target-format"></select>
+      </div>
+
+      <!-- Image options -->
+      <div id="image-options" class="hidden">
+        <div class="field-row">
+          <label for="quality">QUALITY (1–100)</label>
+          <input type="number" id="quality" value="80" min="1" max="100" />
+        </div>
+      </div>
+
+      <!-- Video options -->
+      <div id="video-options" class="hidden">
+        <div class="field-row">
+          <label for="video-bitrate">VIDEO BITRATE (kbps, blank = auto)</label>
+          <input type="number" id="video-bitrate" placeholder="e.g. 1000" min="100" />
+        </div>
+        <div class="field-row">
+          <label for="resolution">WIDTH (px, blank = keep original)</label>
+          <input type="number" id="resolution" placeholder="e.g. 1280" min="1" />
+        </div>
+        <div class="field-row">
+          <label for="audio-bitrate-v">AUDIO BITRATE (kbps, blank = auto)</label>
+          <input type="number" id="audio-bitrate-v" placeholder="e.g. 128" min="32" />
+        </div>
+      </div>
+
+      <!-- Audio options -->
+      <div id="audio-options" class="hidden">
+        <div class="field-row">
+          <label for="audio-bitrate">AUDIO BITRATE (kbps, blank = auto)</label>
+          <input type="number" id="audio-bitrate" placeholder="e.g. 192" min="32" />
+        </div>
+      </div>
+
+      <button id="convert-btn">CONVERT</button>
+    </section>
+
+    <!-- Step 3: Progress / Result -->
+    <section id="result-section" class="hidden">
+      <h2>03 — RESULT</h2>
+      <div id="progress-bar-container" class="hidden">
+        <div id="progress-bar"></div>
+      </div>
+      <p id="status-msg"></p>
+      <a id="download-link" class="hidden" href="#" download>DOWNLOAD CONVERTED FILE</a>
+      <button id="reset-btn" class="hidden">CONVERT ANOTHER FILE</button>
+    </section>
+  </main>
+
+  <footer>
+    <p>FILE CONVERTER — OPEN SOURCE</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
