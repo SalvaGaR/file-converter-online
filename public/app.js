@@ -5,6 +5,7 @@
 const IMAGE_FORMATS = ['jpeg', 'png', 'webp', 'avif', 'gif', 'tiff'];
 const VIDEO_FORMATS = ['mp4', 'webm', 'mkv', 'avi', 'mov'];
 const AUDIO_FORMATS = ['mp3', 'ogg', 'flac', 'aac', 'm4a', 'wav'];
+const DEFAULT_IMAGE_QUALITY = 92;
 
 const IMAGE_MIME_PREFIXES = ['image/'];
 const VIDEO_MIME_PREFIXES = ['video/'];
@@ -459,13 +460,22 @@ async function executeOfficeAction() {
     let y = height - margin;
 
     for (const rawLine of lines) {
-      // Word-wrap long lines
-      const maxLineWidth = width - margin * 2;
+      const writableWidth = width - margin * 2;
       let remaining = rawLine;
       while (remaining.length > 0) {
         let chunk = remaining;
-        while (font.widthOfTextAtSize(chunk, fontSize) > maxLineWidth && chunk.length > 1) {
-          chunk = chunk.slice(0, -1);
+        if (font.widthOfTextAtSize(chunk, fontSize) > writableWidth) {
+          // Try to break at word boundary
+          let breakIdx = chunk.length;
+          while (breakIdx > 1 && font.widthOfTextAtSize(chunk.slice(0, breakIdx), fontSize) > writableWidth) {
+            breakIdx--;
+          }
+          // Look for a word boundary (space) near the break point
+          const spaceIdx = chunk.lastIndexOf(' ', breakIdx);
+          if (spaceIdx > 0) {
+            breakIdx = spaceIdx + 1;
+          }
+          chunk = chunk.slice(0, breakIdx);
         }
         if (y - lineHeight < margin) {
           page = pdfDoc.addPage();
@@ -540,7 +550,7 @@ async function startConversion() {
 
     if (fileCategory === 'image') {
       const format = targetFormatSelect.value;
-      const quality = 92;
+      const quality = DEFAULT_IMAGE_QUALITY;
       setProgress(10);
       statusMsg.textContent = 'CONVERTING IMAGE…';
       blob = await convertImage(selectedFile, format, quality);

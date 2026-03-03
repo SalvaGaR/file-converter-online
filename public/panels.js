@@ -499,25 +499,25 @@ async function renderOfficePanel(file) {
     const arrayBuffer = await file.arrayBuffer();
 
     if (isDocx && typeof mammoth !== 'undefined') {
-      var result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+      const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
       preview.innerHTML = '';
-      var container = document.createElement('div');
+      const container = document.createElement('div');
       container.className = 'office-html-content';
       container.innerHTML = result.value;
       preview.appendChild(container);
     } else if (isExcel && typeof XLSX !== 'undefined') {
-      var workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       preview.innerHTML = '';
       workbook.SheetNames.forEach(function (name) {
-        var sheet = workbook.Sheets[name];
-        var heading = document.createElement('h3');
+        const sheet = workbook.Sheets[name];
+        const heading = document.createElement('h3');
         heading.textContent = name;
         heading.style.fontWeight = '900';
         heading.style.marginBottom = '0.5rem';
         preview.appendChild(heading);
 
-        var html = XLSX.utils.sheet_to_html(sheet);
-        var wrapper = document.createElement('div');
+        const html = XLSX.utils.sheet_to_html(sheet);
+        const wrapper = document.createElement('div');
         wrapper.className = 'office-html-content';
         wrapper.innerHTML = html;
         preview.appendChild(wrapper);
