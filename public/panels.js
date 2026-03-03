@@ -38,6 +38,9 @@ function cleanupPanels() {
 
   const pdfPreview = document.getElementById('pdf-preview');
   if (pdfPreview) pdfPreview.innerHTML = '';
+
+  const officePreview = document.getElementById('office-preview');
+  if (officePreview) officePreview.innerHTML = '';
 }
 
 // ── Panel visibility ─────────────────────────────────────────────────────────
@@ -54,6 +57,7 @@ function showEditPanel(category, file) {
     audio: renderAudioPanel,
     video: renderVideoPanel,
     pdf: renderPdfPanel,
+    office: renderOfficePanel,
     generic: renderGenericPanel,
   };
 
@@ -457,6 +461,74 @@ async function renderPdfPanel(file) {
   };
 
   pdfDropZone.onclick = function () { mergeInput.click(); };
+}
+
+// ── Office panel (Mammoth.js for DOCX, SheetJS for Excel) ────────────────────
+
+async function renderOfficePanel(file) {
+  const panel = document.getElementById('panel-office');
+  const preview = document.getElementById('office-preview');
+  const nameEl = document.getElementById('office-name');
+  const sizeEl = document.getElementById('office-size');
+  const optionsGrid = document.getElementById('office-options-grid');
+  const docxBtn = optionsGrid.querySelector('[data-action="docx-to-pdf"]');
+
+  panel.classList.remove('hidden');
+  preview.innerHTML = '<p class="info-text">LOADING PREVIEW…</p>';
+  nameEl.textContent = 'NAME: ' + file.name;
+  sizeEl.textContent = 'SIZE: ' + _formatBytes(file.size);
+
+  const ext = file.name.split('.').pop().toLowerCase();
+  const isDocx = ext === 'docx';
+  const isExcel = ext === 'xlsx' || ext === 'xls' || ext === 'csv';
+
+  // Show DOCX-to-PDF button only for DOCX files
+  if (docxBtn) docxBtn.classList.toggle('hidden', !isDocx);
+
+  window._selectedOfficeAction = null;
+
+  optionsGrid.onclick = function (e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    optionsGrid.querySelectorAll('.grid-btn').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    window._selectedOfficeAction = btn.dataset.action;
+  };
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+
+    if (isDocx && typeof mammoth !== 'undefined') {
+      var result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+      preview.innerHTML = '';
+      var container = document.createElement('div');
+      container.className = 'office-html-content';
+      container.innerHTML = result.value;
+      preview.appendChild(container);
+    } else if (isExcel && typeof XLSX !== 'undefined') {
+      var workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      preview.innerHTML = '';
+      workbook.SheetNames.forEach(function (name) {
+        var sheet = workbook.Sheets[name];
+        var heading = document.createElement('h3');
+        heading.textContent = name;
+        heading.style.fontWeight = '900';
+        heading.style.marginBottom = '0.5rem';
+        preview.appendChild(heading);
+
+        var html = XLSX.utils.sheet_to_html(sheet);
+        var wrapper = document.createElement('div');
+        wrapper.className = 'office-html-content';
+        wrapper.innerHTML = html;
+        preview.appendChild(wrapper);
+      });
+    } else {
+      preview.innerHTML = '<p class="info-text">NO PREVIEW AVAILABLE FOR THIS FILE TYPE.</p>';
+    }
+  } catch (err) {
+    console.warn('Office preview error:', err);
+    preview.innerHTML = '<p class="info-text">COULD NOT RENDER PREVIEW.</p>';
+  }
 }
 
 // ── Generic panel ────────────────────────────────────────────────────────────

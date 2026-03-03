@@ -7,6 +7,40 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.css"
         crossorigin="anonymous" />
+
+  <!-- WaveSurfer.js -->
+  <script defer src="https://unpkg.com/wavesurfer.js@6.6.4/dist/wavesurfer.min.js"
+          crossorigin="anonymous"></script>
+  <script defer src="https://unpkg.com/wavesurfer.js@6.6.4/dist/plugin/wavesurfer.regions.min.js"
+          crossorigin="anonymous"></script>
+  <script defer src="https://unpkg.com/wavesurfer.js@6.6.4/dist/plugin/wavesurfer.spectrogram.min.js"
+          crossorigin="anonymous"></script>
+
+  <!-- FFmpeg.wasm -->
+  <script defer src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"
+          crossorigin="anonymous"></script>
+
+  <!-- PDF.js & pdf-lib -->
+  <script defer src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"
+          crossorigin="anonymous"></script>
+  <script defer src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"
+          crossorigin="anonymous"></script>
+
+  <!-- JSZip -->
+  <script defer src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"
+          crossorigin="anonymous"></script>
+
+  <!-- Cropper.js -->
+  <script defer src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js"
+          crossorigin="anonymous"></script>
+
+  <!-- Mammoth.js (DOCX preview) -->
+  <script defer src="https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js"
+          crossorigin="anonymous"></script>
+
+  <!-- SheetJS (Excel preview) -->
+  <script defer src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"
+          crossorigin="anonymous"></script>
 </head>
 <body>
   <header>
@@ -134,6 +168,18 @@
         </div>
       </div>
 
+      <!-- Office panel (DOCX / Excel) -->
+      <div id="panel-office" class="edit-panel hidden">
+        <div id="office-preview" class="office-preview-container"></div>
+        <div id="office-info" class="info-panel">
+          <p id="office-name" class="info-text"></p>
+          <p id="office-size" class="info-text"></p>
+        </div>
+        <div id="office-options-grid" class="options-grid">
+          <button type="button" class="grid-btn" data-action="docx-to-pdf">CONVERT TO PDF</button>
+        </div>
+      </div>
+
       <!-- Generic panel -->
       <div id="panel-generic" class="edit-panel hidden">
         <div id="generic-icon" class="file-icon">📄</div>
@@ -154,17 +200,17 @@
       <h2>03 — CONVERSION OPTIONS</h2>
 
       <div class="field-row">
+        <label for="output-filename">OUTPUT FILENAME</label>
+        <input type="text" id="output-filename" placeholder="e.g. my-file" />
+      </div>
+
+      <div class="field-row">
         <label for="target-format">TARGET FORMAT</label>
         <select id="target-format"></select>
       </div>
 
       <!-- Image options -->
-      <div id="image-options" class="hidden">
-        <div class="field-row">
-          <label for="quality">QUALITY (1–100)</label>
-          <input type="number" id="quality" value="80" min="1" max="100" />
-        </div>
-      </div>
+      <div id="image-options" class="hidden"></div>
 
       <!-- Video options -->
       <div id="video-options" class="hidden">
@@ -210,28 +256,7 @@
     <p>FILE MANIPULATOR — OPEN SOURCE</p>
   </footer>
 
-  <script src="https://unpkg.com/wavesurfer.js@6.6.4/dist/wavesurfer.min.js"
-          integrity="sha384-H2PCRoIouweFaTCjeuXtjPmDXIg8cPTcdhsQ09jU6fPV0sOT+Uz8URYxUob0VzPL"
-          crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/wavesurfer.js@6.6.4/dist/plugin/wavesurfer.regions.min.js"
-          crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/wavesurfer.js@6.6.4/dist/plugin/wavesurfer.spectrogram.min.js"
-          crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"
-          integrity="sha384-m5or9sW5FUT2WQbj3UthGceVpwo9zSgHKdCugYKHl19lyXPvwO/oQcmq8Fw0FfaA"
-          crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"
-          integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e"
-          crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"
-          integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI"
-          crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"
-          integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG"
-          crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js"
-          crossorigin="anonymous"></script>
-  <script src="panels.js"></script>
-  <script src="app.js"></script>
+  <script defer src="panels.js"></script>
+  <script defer src="app.js"></script>
 </body>
 </html>

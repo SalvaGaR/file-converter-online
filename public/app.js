@@ -10,9 +10,17 @@ const IMAGE_MIME_PREFIXES = ['image/'];
 const VIDEO_MIME_PREFIXES = ['video/'];
 const AUDIO_MIME_PREFIXES = ['audio/'];
 
+const OFFICE_MIME_TYPES = [
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel',
+  'application/msword',
+];
+
 function getFileCategory(mimeType) {
   if (!mimeType) return 'generic';
   if (mimeType === 'application/pdf') return 'pdf';
+  if (OFFICE_MIME_TYPES.indexOf(mimeType) !== -1) return 'office';
   if (IMAGE_MIME_PREFIXES.some((p) => mimeType.startsWith(p))) return 'image';
   if (VIDEO_MIME_PREFIXES.some((p) => mimeType.startsWith(p))) return 'video';
   if (AUDIO_MIME_PREFIXES.some((p) => mimeType.startsWith(p))) return 'audio';
@@ -39,6 +47,7 @@ const progressBar = document.getElementById('progress-bar');
 const statusMsg = document.getElementById('status-msg');
 const downloadLink = document.getElementById('download-link');
 const resetBtn = document.getElementById('reset-btn');
+const outputFilenameInput = document.getElementById('output-filename');
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -65,6 +74,8 @@ function resetState() {
   resetBtn.classList.add('hidden');
   convertBtn.disabled = false;
   statusMsg.textContent = '';
+  if (outputFilenameInput) outputFilenameInput.value = '';
+  window._selectedOfficeAction = null;
 }
 
 // ── Drop zone interactions ────────────────────────────────────────────────────
@@ -107,6 +118,12 @@ function handleFileSelected(file) {
   fileInfo.textContent = `Selected: ${file.name} (${formatBytes(file.size)}) — ${file.type || 'unknown'}`;
   fileInfo.classList.remove('hidden');
 
+  // Pre-fill output filename with the file's base name
+  if (outputFilenameInput) {
+    const baseName = file.name.replace(/\.[^.]+$/, '');
+    outputFilenameInput.value = baseName;
+  }
+
   showEditPanel(category, file);
 
   if (category === 'image' || category === 'video' || category === 'audio') {
@@ -114,6 +131,8 @@ function handleFileSelected(file) {
     showOptionsSection(category);
   } else if (category === 'pdf') {
     showOptionsSection('pdf');
+  } else if (category === 'office') {
+    showOptionsSection('office');
   } else {
     optionsSection.classList.add('hidden');
   }
@@ -148,7 +167,7 @@ function showOptionsSection(category) {
   audioOptions.classList.add('hidden');
 
   const formatRow = targetFormatSelect.closest('.field-row');
-  if (category === 'pdf') {
+  if (category === 'pdf' || category === 'office') {
     if (formatRow) formatRow.classList.add('hidden');
   } else {
     if (formatRow) formatRow.classList.remove('hidden');
@@ -404,6 +423,67 @@ async function executePdfAction() {
   throw new Error('Unknown PDF action selected.');
 }
 
+// ── Output filename helper ────────────────────────────────────────────────────
+
+function getOutputFilename(defaultBase, ext) {
+  const custom = (outputFilenameInput && outputFilenameInput.value || '').trim();
+  const base = custom || defaultBase;
+  return base + '.' + ext;
+}
+
+// ── Office (DOCX-to-PDF) conversion via Mammoth + pdf-lib ────────────────────
+
+async function executeOfficeAction() {
+  const action = window._selectedOfficeAction;
+  if (!action) throw new Error('Please select an action from the panel above.');
+
+  if (action === 'docx-to-pdf') {
+    if (typeof mammoth === 'undefined') throw new Error('Mammoth.js not loaded.');
+    if (typeof PDFLib === 'undefined') throw new Error('pdf-lib not loaded.');
+
+    statusMsg.textContent = 'CONVERTING DOCX TO PDF…';
+    const arrayBuffer = await selectedFile.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+    const text = result.value || '';
+
+    const { PDFDocument, rgb, StandardFonts } = PDFLib;
+    const pdfDoc = await PDFDocument.create();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontSize = 12;
+    const margin = 50;
+    const lineHeight = fontSize * 1.3;
+
+    const lines = text.split('\n');
+    let page = pdfDoc.addPage();
+    let { width, height } = page.getSize();
+    let y = height - margin;
+
+    for (const rawLine of lines) {
+      // Word-wrap long lines
+      const maxLineWidth = width - margin * 2;
+      let remaining = rawLine;
+      while (remaining.length > 0) {
+        let chunk = remaining;
+        while (font.widthOfTextAtSize(chunk, fontSize) > maxLineWidth && chunk.length > 1) {
+          chunk = chunk.slice(0, -1);
+        }
+        if (y - lineHeight < margin) {
+          page = pdfDoc.addPage();
+          y = page.getSize().height - margin;
+        }
+        page.drawText(chunk, { x: margin, y: y, size: fontSize, font: font, color: rgb(0, 0, 0) });
+        y -= lineHeight;
+        remaining = remaining.slice(chunk.length);
+      }
+    }
+
+    const pdfBytes = await pdfDoc.save();
+    return new Blob([pdfBytes], { type: 'application/pdf' });
+  }
+
+  throw new Error('Unknown office action selected.');
+}
+
 // ── Generic panel handlers ────────────────────────────────────────────────────
 
 document.getElementById('btn-base64').addEventListener('click', function () {
@@ -460,11 +540,11 @@ async function startConversion() {
 
     if (fileCategory === 'image') {
       const format = targetFormatSelect.value;
-      const quality = parseInt(document.getElementById('quality').value, 10);
+      const quality = 92;
       setProgress(10);
       statusMsg.textContent = 'CONVERTING IMAGE…';
       blob = await convertImage(selectedFile, format, quality);
-      filename = `converted.${format}`;
+      filename = getOutputFilename('converted', format);
       setProgress(100);
     } else if (fileCategory === 'video') {
       const format = targetFormatSelect.value;
@@ -475,7 +555,7 @@ async function startConversion() {
         trimStart: document.getElementById('video-trim-start').value,
         trimEnd: document.getElementById('video-trim-end').value,
       });
-      filename = `converted.${format}`;
+      filename = getOutputFilename('converted', format);
       setProgress(100);
     } else if (fileCategory === 'audio') {
       const format = targetFormatSelect.value;
@@ -484,13 +564,20 @@ async function startConversion() {
         trimStart: document.getElementById('audio-trim-start').value,
         trimEnd: document.getElementById('audio-trim-end').value,
       });
-      filename = `converted.${format}`;
+      filename = getOutputFilename('converted', format);
       setProgress(100);
     } else if (fileCategory === 'pdf') {
       setProgress(10);
       blob = await executePdfAction();
       const action = window._selectedPdfAction;
-      filename = action === 'pdf-to-images' ? 'pages.zip' : 'result.pdf';
+      filename = action === 'pdf-to-images'
+        ? getOutputFilename('pages', 'zip')
+        : getOutputFilename('result', 'pdf');
+      setProgress(100);
+    } else if (fileCategory === 'office') {
+      setProgress(10);
+      blob = await executeOfficeAction();
+      filename = getOutputFilename('converted', 'pdf');
       setProgress(100);
     }
 
@@ -520,6 +607,7 @@ resetBtn.addEventListener('click', () => {
   selectedFile = null;
   fileCategory = null;
   window._selectedPdfAction = null;
+  window._selectedOfficeAction = null;
   fileInput.value = '';
   fileInfo.classList.add('hidden');
   editSection.classList.add('hidden');
@@ -532,6 +620,7 @@ resetBtn.addEventListener('click', () => {
   resetBtn.classList.add('hidden');
   convertBtn.disabled = false;
   statusMsg.textContent = '';
+  if (outputFilenameInput) outputFilenameInput.value = '';
 
   const formatRow = targetFormatSelect.closest('.field-row');
   if (formatRow) formatRow.classList.remove('hidden');
