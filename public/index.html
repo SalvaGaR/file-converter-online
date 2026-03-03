@@ -41,20 +41,20 @@
       <!-- Audio panel -->
       <div id="panel-audio" class="edit-panel hidden">
         <div id="waveform" class="waveform-container"></div>
+        <div id="spectrogram" class="spectrogram-container hidden"></div>
         <div id="audio-controls" class="controls-row">
           <button type="button" id="audio-play" class="ctrl-btn">PLAY</button>
           <button type="button" id="audio-pause" class="ctrl-btn">PAUSE</button>
           <button type="button" id="audio-stop" class="ctrl-btn">STOP</button>
+          <button type="button" id="audio-view-toggle" class="ctrl-btn">VIEW: SPECTROGRAM</button>
         </div>
         <div class="field-row">
-          <label for="audio-trim-start">TRIM START (s)</label>
-          <input type="range" id="audio-trim-start" min="0" max="100" step="0.1" value="0" />
-          <span id="audio-trim-start-val" class="slider-value">0.0</span>
+          <label for="audio-trim-start">START TIME (s)</label>
+          <input type="number" id="audio-trim-start" min="0" step="0.1" value="0" />
         </div>
         <div class="field-row">
-          <label for="audio-trim-end">TRIM END (s)</label>
-          <input type="range" id="audio-trim-end" min="0" max="100" step="0.1" value="100" />
-          <span id="audio-trim-end-val" class="slider-value">0.0</span>
+          <label for="audio-trim-end">END TIME (s)</label>
+          <input type="number" id="audio-trim-end" min="0" step="0.1" value="0" />
         </div>
         <div id="audio-info" class="info-panel">
           <p id="audio-duration-info" class="info-text"></p>
@@ -197,6 +197,10 @@
 
   <script src="https://unpkg.com/wavesurfer.js@6.6.4/dist/wavesurfer.min.js"
           integrity="sha384-H2PCRoIouweFaTCjeuXtjPmDXIg8cPTcdhsQ09jU6fPV0sOT+Uz8URYxUob0VzPL"
+          crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/wavesurfer.js@6.6.4/dist/plugin/wavesurfer.regions.min.js"
+          crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/wavesurfer.js@6.6.4/dist/plugin/wavesurfer.spectrogram.min.js"
           crossorigin="anonymous"></script>
   <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"
           integrity="sha384-m5or9sW5FUT2WQbj3UthGceVpwo9zSgHKdCugYKHl19lyXPvwO/oQcmq8Fw0FfaA"
