@@ -391,6 +391,21 @@ input[type="text"] {
   overflow: hidden;
 }
 
+/* Hide the native <audio> element WaveSurfer inserts */
+.waveform-container audio {
+  display: none !important;
+}
+
+/* ── Spectrogram container ───────────────────────────────── */
+
+.spectrogram-container {
+  border: var(--border);
+  margin-bottom: var(--gap);
+  background: var(--black);
+  min-height: 128px;
+  overflow: hidden;
+}
+
 /* ── PDF preview thumbnails ──────────────────────────────── */
 
 .pdf-preview-container {

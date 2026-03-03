@@ -89,17 +89,18 @@ function renderImagePanel(file) {
   slider.oninput = updateEstimate;
 }
 
-// ── Audio panel (WaveSurfer waveform) ────────────────────────────────────────
+// ── Audio panel (WaveSurfer waveform + spectrogram + regions) ─────────────────
 
 function renderAudioPanel(file) {
   const panel = document.getElementById('panel-audio');
   const playBtn = document.getElementById('audio-play');
   const pauseBtn = document.getElementById('audio-pause');
   const stopBtn = document.getElementById('audio-stop');
+  const toggleBtn = document.getElementById('audio-view-toggle');
+  const waveformEl = document.getElementById('waveform');
+  const spectrogramEl = document.getElementById('spectrogram');
   const trimStart = document.getElementById('audio-trim-start');
   const trimEnd = document.getElementById('audio-trim-end');
-  const trimStartVal = document.getElementById('audio-trim-start-val');
-  const trimEndVal = document.getElementById('audio-trim-end-val');
   const durInfo = document.getElementById('audio-duration-info');
   const brInfo = document.getElementById('audio-bitrate-info');
   const srInfo = document.getElementById('audio-samplerate-info');
@@ -108,10 +109,27 @@ function renderAudioPanel(file) {
   panel.classList.remove('hidden');
   metaTitle.value = file.name.replace(/\.[^.]+$/, '');
 
+  // Reset view to waveform
+  waveformEl.classList.remove('hidden');
+  spectrogramEl.classList.add('hidden');
+  toggleBtn.textContent = 'VIEW: SPECTROGRAM';
+
   // Destroy any previous WaveSurfer instance
   if (_waveSurfer) {
     _waveSurfer.destroy();
     _waveSurfer = null;
+  }
+
+  const plugins = [];
+  if (typeof WaveSurfer.regions !== 'undefined') {
+    plugins.push(WaveSurfer.regions.create());
+  }
+  if (typeof WaveSurfer.spectrogram !== 'undefined') {
+    plugins.push(WaveSurfer.spectrogram.create({
+      container: '#spectrogram',
+      labels: false,
+      height: 128,
+    }));
   }
 
   _waveSurfer = WaveSurfer.create({
@@ -123,24 +141,43 @@ function renderAudioPanel(file) {
     barWidth: 2,
     responsive: true,
     hideScrollbar: true,
+    backend: 'WebAudio',
+    plugins: plugins,
   });
 
   const audioUrl = _createURL(file);
   _waveSurfer.load(audioUrl);
+
+  let _trimRegion = null;
 
   _waveSurfer.on('ready', function () {
     const dur = _waveSurfer.getDuration();
 
     trimStart.max = dur;
     trimEnd.max = dur;
-    trimStart.value = 0;
-    trimEnd.value = dur;
-    trimStartVal.textContent = '0.0';
-    trimEndVal.textContent = dur.toFixed(1);
+    trimStart.value = (0).toFixed(1);
+    trimEnd.value = dur.toFixed(1);
 
     durInfo.textContent = 'DURATION: ' + _formatTime(dur);
     const bitrateKbps = dur > 0 ? Math.round((file.size * 8) / dur / 1000) : 0;
     brInfo.textContent = 'BITRATE: ~' + bitrateKbps + ' KBPS';
+
+    // Create visual trim region
+    if (_waveSurfer.addRegion) {
+      _trimRegion = _waveSurfer.addRegion({
+        start: 0,
+        end: dur,
+        color: 'rgba(0, 0, 0, 0.1)',
+        drag: true,
+        resize: true,
+      });
+    }
+  });
+
+  // Sync region handles → numeric inputs (bidirectional)
+  _waveSurfer.on('region-updated', function (region) {
+    trimStart.value = region.start.toFixed(1);
+    trimEnd.value = region.end.toFixed(1);
   });
 
   _waveSurfer.on('audioprocess', function (time) {
@@ -164,11 +201,30 @@ function renderAudioPanel(file) {
     srInfo.textContent = 'SAMPLE RATE: N/A';
   });
 
+  // Sync numeric inputs → region (bidirectional)
   trimStart.oninput = function () {
-    trimStartVal.textContent = parseFloat(this.value).toFixed(1);
+    const start = parseFloat(this.value);
+    const end = parseFloat(trimEnd.value);
+    if (!isNaN(start) && start < end && _trimRegion) _trimRegion.update({ start: start });
   };
   trimEnd.oninput = function () {
-    trimEndVal.textContent = parseFloat(this.value).toFixed(1);
+    const end = parseFloat(this.value);
+    const start = parseFloat(trimStart.value);
+    if (!isNaN(end) && end > start && _trimRegion) _trimRegion.update({ end: end });
+  };
+
+  // Toggle waveform / spectrogram view
+  toggleBtn.onclick = function () {
+    const showingWave = !waveformEl.classList.contains('hidden');
+    if (showingWave) {
+      waveformEl.classList.add('hidden');
+      spectrogramEl.classList.remove('hidden');
+      toggleBtn.textContent = 'VIEW: WAVEFORM';
+    } else {
+      spectrogramEl.classList.add('hidden');
+      waveformEl.classList.remove('hidden');
+      toggleBtn.textContent = 'VIEW: SPECTROGRAM';
+    }
   };
 
   playBtn.onclick = function () {
