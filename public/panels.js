@@ -134,6 +134,7 @@ function renderAudioPanel(file) {
   const spectrogramEl = document.getElementById('spectrogram');
   const trimStart = document.getElementById('audio-trim-start');
   const trimEnd = document.getElementById('audio-trim-end');
+  const timeCounter = document.getElementById('audio-time-counter');
   const durInfo = document.getElementById('audio-duration-info');
   const brInfo = document.getElementById('audio-bitrate-info');
   const srInfo = document.getElementById('audio-samplerate-info');
@@ -191,6 +192,7 @@ function renderAudioPanel(file) {
     trimStart.value = (0).toFixed(1);
     trimEnd.value = dur.toFixed(1);
 
+    timeCounter.textContent = _formatTime(0) + ' / ' + _formatTime(dur);
     durInfo.textContent = 'DURATION: ' + _formatTime(dur);
     const bitrateKbps = dur > 0 ? Math.round((file.size * BITS_PER_BYTE) / dur / BITS_PER_KILOBIT) : 0;
     brInfo.textContent = 'BITRATE: ~' + bitrateKbps + ' KBPS';
@@ -214,10 +216,11 @@ function renderAudioPanel(file) {
   });
 
   _waveSurfer.on('audioprocess', function (time) {
+    const dur = _waveSurfer.getDuration();
+    timeCounter.textContent = _formatTime(time) + ' / ' + _formatTime(dur);
     const end = parseFloat(trimEnd.value);
     if (time >= end) {
       _waveSurfer.pause();
-      const dur = _waveSurfer.getDuration();
       if (dur > 0) _waveSurfer.seekTo(end / dur);
     }
   });
