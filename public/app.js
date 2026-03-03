@@ -46,6 +46,27 @@ let selectedFile = null;
 let fileCategory = null;
 let _ffmpeg = null;
 
+// ── State reset ───────────────────────────────────────────────────────────────
+
+function resetState() {
+  cleanupPanels();
+
+  // Revoke any previous download blob URL to free memory;
+  // revoking a non-blob href is harmless so errors are safely ignored.
+  if (downloadLink.href && downloadLink.href !== window.location.href) {
+    try { URL.revokeObjectURL(downloadLink.href); } catch (_) { /* non-blob href – ignore */ }
+  }
+
+  resultSection.classList.add('hidden');
+  progressBarContainer.classList.add('hidden');
+  progressBar.style.width = '0%';
+  downloadLink.classList.add('hidden');
+  downloadLink.href = '#';
+  resetBtn.classList.add('hidden');
+  convertBtn.disabled = false;
+  statusMsg.textContent = '';
+}
+
 // ── Drop zone interactions ────────────────────────────────────────────────────
 
 dropZone.addEventListener('click', () => fileInput.click());
@@ -75,6 +96,8 @@ fileInput.addEventListener('change', () => {
 // ── File selection ────────────────────────────────────────────────────────────
 
 function handleFileSelected(file) {
+  resetState();
+
   const category = getFileCategory(file.type);
 
   selectedFile = file;
