@@ -183,6 +183,32 @@ function getMime(format) {
 
 function convertImage(file, targetFormat, quality) {
   return new Promise((resolve, reject) => {
+    // If Cropper.js is active, use the cropped canvas directly
+    if (typeof _imageCropper !== 'undefined' && _imageCropper) {
+      const croppedCanvas = _imageCropper.getCroppedCanvas();
+      if (!croppedCanvas) {
+        reject(new Error('Could not get cropped image.'));
+        return;
+      }
+      // For JPEG, paint onto a white background canvas first
+      let sourceCanvas = croppedCanvas;
+      if (targetFormat === 'jpeg' || targetFormat === 'jpg') {
+        const bg = document.createElement('canvas');
+        bg.width = croppedCanvas.width;
+        bg.height = croppedCanvas.height;
+        const ctx = bg.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, bg.width, bg.height);
+        ctx.drawImage(croppedCanvas, 0, 0);
+        sourceCanvas = bg;
+      }
+      sourceCanvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('Image conversion failed.'));
+      }, getMime(targetFormat), quality / 100);
+      return;
+    }
+
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = function () {

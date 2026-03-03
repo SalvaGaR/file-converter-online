@@ -4,6 +4,14 @@
 
 const _objectURLs = [];
 let _waveSurfer = null;
+let _imageCropper = null;
+let _flipH = 1;
+let _flipV = 1;
+
+// Conversion constants
+const BITS_PER_BYTE = 8;
+const BITS_PER_KILOBIT = 1000;
+const PDF_RENDER_BASE_SCALE = 1.5;
 
 function _createURL(file) {
   const url = URL.createObjectURL(file);
@@ -18,6 +26,11 @@ function cleanupPanels() {
   if (_waveSurfer) {
     _waveSurfer.destroy();
     _waveSurfer = null;
+  }
+
+  if (_imageCropper) {
+    _imageCropper.destroy();
+    _imageCropper = null;
   }
 
   const video = document.getElementById('preview-video');
@@ -67,26 +80,46 @@ function _formatTime(sec) {
 function renderImagePanel(file) {
   const panel = document.getElementById('panel-image');
   const img = document.getElementById('preview-image');
-  const slider = document.getElementById('compress-slider');
-  const valLabel = document.getElementById('compress-value');
-  const sizeLabel = document.getElementById('estimated-size');
 
   panel.classList.remove('hidden');
-  img.src = _createURL(file);
 
-  const originalSize = file.size;
-  slider.value = 80;
-  valLabel.textContent = '80';
-
-  function updateEstimate() {
-    const q = parseInt(slider.value, 10);
-    valLabel.textContent = q;
-    const est = originalSize * (q / 100);
-    sizeLabel.textContent = 'ESTIMATED SIZE: ' + _formatBytes(est);
+  // Destroy any previous cropper before loading new image
+  if (_imageCropper) {
+    _imageCropper.destroy();
+    _imageCropper = null;
   }
 
-  updateEstimate();
-  slider.oninput = updateEstimate;
+  img.src = _createURL(file);
+
+  _flipH = 1;
+  _flipV = 1;
+
+  img.onload = function () {
+    if (typeof Cropper !== 'undefined') {
+      _imageCropper = new Cropper(img, {
+        viewMode: 1,
+        autoCropArea: 1,
+        responsive: true,
+        background: false,
+      });
+    }
+  };
+
+  document.getElementById('btn-rotate-cw').onclick = function () {
+    if (_imageCropper) _imageCropper.rotate(90);
+  };
+  document.getElementById('btn-flip-h').onclick = function () {
+    if (_imageCropper) {
+      _flipH *= -1;
+      _imageCropper.scaleX(_flipH);
+    }
+  };
+  document.getElementById('btn-flip-v').onclick = function () {
+    if (_imageCropper) {
+      _flipV *= -1;
+      _imageCropper.scaleY(_flipV);
+    }
+  };
 }
 
 // ── Audio panel (WaveSurfer waveform + spectrogram + regions) ─────────────────
@@ -159,7 +192,7 @@ function renderAudioPanel(file) {
     trimEnd.value = dur.toFixed(1);
 
     durInfo.textContent = 'DURATION: ' + _formatTime(dur);
-    const bitrateKbps = dur > 0 ? Math.round((file.size * 8) / dur / 1000) : 0;
+    const bitrateKbps = dur > 0 ? Math.round((file.size * BITS_PER_BYTE) / dur / BITS_PER_KILOBIT) : 0;
     brInfo.textContent = 'BITRATE: ~' + bitrateKbps + ' KBPS';
 
     // Create visual trim region
@@ -253,14 +286,41 @@ function renderVideoPanel(file) {
   const trimEnd = document.getElementById('video-trim-end');
   const trimStartVal = document.getElementById('video-trim-start-val');
   const trimEndVal = document.getElementById('video-trim-end-val');
+  const durInfo = document.getElementById('video-duration-info');
+  const resInfo = document.getElementById('video-resolution-info');
+  const brInfo = document.getElementById('video-bitrate-info');
 
   panel.classList.remove('hidden');
   video.src = _createURL(file);
   video.controls = true;
 
+  // Live estimated size in the options section
+  const videoBitrateInput = document.getElementById('video-bitrate');
+  const audioBitrateInput = document.getElementById('audio-bitrate-v');
+  const estSizeLabel = document.getElementById('video-estimated-size');
+
+  let _videoDuration = 0;
+
+  function updateEstimatedSize() {
+    if (!estSizeLabel || _videoDuration <= 0) return;
+    const vbr = parseFloat(videoBitrateInput.value) || 0;
+    const abr = parseFloat(audioBitrateInput.value) || 0;
+    if (vbr <= 0 && abr <= 0) {
+      estSizeLabel.textContent = '';
+      return;
+    }
+    const totalKbps = vbr + abr;
+    const bytes = (totalKbps * BITS_PER_KILOBIT / BITS_PER_BYTE) * _videoDuration;
+    estSizeLabel.textContent = 'ESTIMATED OUTPUT SIZE: ' + _formatBytes(bytes);
+  }
+
+  if (videoBitrateInput) videoBitrateInput.oninput = updateEstimatedSize;
+  if (audioBitrateInput) audioBitrateInput.oninput = updateEstimatedSize;
+
   video.addEventListener('loadedmetadata', function onMeta() {
     video.removeEventListener('loadedmetadata', onMeta);
     const dur = video.duration || 0;
+    _videoDuration = dur;
 
     trimStart.max = dur;
     trimEnd.max = dur;
@@ -268,6 +328,11 @@ function renderVideoPanel(file) {
     trimEnd.value = dur;
     trimStartVal.textContent = '0.0';
     trimEndVal.textContent = dur.toFixed(1);
+
+    durInfo.textContent = 'DURATION: ' + _formatTime(dur);
+    resInfo.textContent = 'RESOLUTION: ' + video.videoWidth + ' × ' + video.videoHeight;
+    const bitrateKbps = dur > 0 ? Math.round((file.size * BITS_PER_BYTE) / dur / BITS_PER_KILOBIT) : 0;
+    brInfo.textContent = 'ESTIMATED BITRATE: ~' + bitrateKbps + ' KBPS';
   });
 
   trimStart.oninput = function () {
@@ -302,13 +367,18 @@ async function renderPdfPanel(file) {
   const mergeInput = document.getElementById('pdf-merge-input');
   const pdfDropZone = document.getElementById('pdf-drop-zone');
   const pdfPreview = document.getElementById('pdf-preview');
+  const pdfNav = document.getElementById('pdf-nav');
+  const pdfPrev = document.getElementById('pdf-prev');
+  const pdfNext = document.getElementById('pdf-next');
+  const pdfPageInfo = document.getElementById('pdf-page-info');
 
   panel.classList.remove('hidden');
   mergeZone.classList.add('hidden');
   extractRange.classList.add('hidden');
+  pdfNav.classList.add('hidden');
   window._selectedPdfAction = null;
 
-  // Render PDF preview with pdf.js
+  // Render PDF preview with pdf.js (single page, hi-DPI)
   if (typeof pdfjsLib !== 'undefined' && pdfPreview) {
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
@@ -317,31 +387,46 @@ async function renderPdfPanel(file) {
     try {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      pdfPreview.innerHTML = '';
 
-      const pageCount = document.createElement('p');
-      pageCount.className = 'info-text';
-      pageCount.textContent = `PDF: ${pdf.numPages} PAGE${pdf.numPages !== 1 ? 'S' : ''}`;
-      pdfPreview.appendChild(pageCount);
+      let currentPage = 1;
+      const totalPages = pdf.numPages;
 
-      const numToRender = Math.min(pdf.numPages, 5);
-      for (let i = 1; i <= numToRender; i++) {
-        const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: 0.6 });
+      async function renderPage(pageNum) {
+        pdfPreview.innerHTML = '';
+        const page = await pdf.getPage(pageNum);
+        const dpr = window.devicePixelRatio || 1;
+        const viewport = page.getViewport({ scale: PDF_RENDER_BASE_SCALE * dpr });
+
         const canvas = document.createElement('canvas');
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-        canvas.title = `Page ${i}`;
+        canvas.style.width = (viewport.width / dpr) + 'px';
+        canvas.style.height = (viewport.height / dpr) + 'px';
+        canvas.title = 'Page ' + pageNum;
+
         await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
         pdfPreview.appendChild(canvas);
+
+        pdfPageInfo.textContent = 'PAGE ' + pageNum + ' OF ' + totalPages;
+        pdfPrev.disabled = pageNum <= 1;
+        pdfNext.disabled = pageNum >= totalPages;
       }
 
-      if (pdf.numPages > 5) {
-        const more = document.createElement('p');
-        more.className = 'info-text';
-        more.textContent = `… AND ${pdf.numPages - 5} MORE PAGE${pdf.numPages - 5 !== 1 ? 'S' : ''}`;
-        pdfPreview.appendChild(more);
-      }
+      await renderPage(currentPage);
+      pdfNav.classList.remove('hidden');
+
+      pdfPrev.onclick = async function () {
+        if (currentPage > 1) {
+          currentPage--;
+          await renderPage(currentPage);
+        }
+      };
+      pdfNext.onclick = async function () {
+        if (currentPage < totalPages) {
+          currentPage++;
+          await renderPage(currentPage);
+        }
+      };
     } catch (previewErr) {
       console.warn('PDF preview error:', previewErr);
       pdfPreview.innerHTML = '<p class="info-text">COULD NOT RENDER PREVIEW.</p>';
