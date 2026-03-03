@@ -432,3 +432,39 @@ input[type="text"] {
   background: var(--white);
   color: var(--black);
 }
+
+/* ── PDF navigation ──────────────────────────────────────── */
+
+.pdf-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: var(--gap);
+  flex-wrap: wrap;
+}
+
+.pdf-page-info {
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Cropper container ───────────────────────────────────── */
+
+#crop-container {
+  border: var(--border);
+  margin-bottom: var(--gap);
+  max-height: 420px;
+  overflow: hidden;
+  background: var(--black);
+}
+
+#crop-container img {
+  display: block;
+  max-width: 100%;
+}
+
+.crop-controls {
+  margin-bottom: var(--gap);
+}

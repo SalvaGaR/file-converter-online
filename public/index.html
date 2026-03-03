@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FILE MANIPULATOR</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.css"
+        crossorigin="anonymous" />
 </head>
 <body>
   <header>
@@ -29,13 +31,14 @@
 
       <!-- Image panel -->
       <div id="panel-image" class="edit-panel hidden">
-        <img id="preview-image" alt="PREVIEW" />
-        <div class="field-row">
-          <label for="compress-slider">COMPRESSION QUALITY</label>
-          <input type="range" id="compress-slider" min="0" max="100" value="80" />
-          <span id="compress-value" class="slider-value">80</span>
+        <div id="crop-container">
+          <img id="preview-image" alt="PREVIEW" />
         </div>
-        <p id="estimated-size" class="info-text"></p>
+        <div class="controls-row crop-controls">
+          <button type="button" id="btn-rotate-cw" class="ctrl-btn">ROTATE 90°</button>
+          <button type="button" id="btn-flip-h" class="ctrl-btn">FLIP H</button>
+          <button type="button" id="btn-flip-v" class="ctrl-btn">FLIP V</button>
+        </div>
       </div>
 
       <!-- Audio panel -->
@@ -84,6 +87,11 @@
       <!-- Video panel -->
       <div id="panel-video" class="edit-panel hidden">
         <video id="preview-video" preload="metadata"></video>
+        <div id="video-info" class="info-panel">
+          <p id="video-duration-info" class="info-text"></p>
+          <p id="video-resolution-info" class="info-text"></p>
+          <p id="video-bitrate-info" class="info-text"></p>
+        </div>
         <div class="field-row">
           <label for="video-trim-start">TRIM START (s)</label>
           <input type="range" id="video-trim-start" min="0" max="100" step="0.1" value="0" />
@@ -99,6 +107,11 @@
       <!-- PDF panel -->
       <div id="panel-pdf" class="edit-panel hidden">
         <div id="pdf-preview" class="pdf-preview-container"></div>
+        <div id="pdf-nav" class="pdf-nav hidden">
+          <button type="button" id="pdf-prev" class="ctrl-btn">← PREV</button>
+          <span id="pdf-page-info" class="pdf-page-info">PAGE 1 OF 1</span>
+          <button type="button" id="pdf-next" class="ctrl-btn">NEXT →</button>
+        </div>
         <div id="pdf-options-grid" class="options-grid">
           <button type="button" class="grid-btn" data-action="pdf-to-word">CONVERT TO WORD</button>
           <button type="button" class="grid-btn" data-action="pdf-to-images">CONVERT TO IMAGES</button>
@@ -166,6 +179,7 @@
           <label for="audio-bitrate-v">AUDIO BITRATE (kbps, blank = auto)</label>
           <input type="number" id="audio-bitrate-v" placeholder="e.g. 128" min="32" />
         </div>
+        <p id="video-estimated-size" class="info-text"></p>
       </div>
 
       <!-- Audio options -->
@@ -213,6 +227,8 @@
           crossorigin="anonymous"></script>
   <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"
           integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG"
+          crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js"
           crossorigin="anonymous"></script>
   <script src="panels.js"></script>
   <script src="app.js"></script>
