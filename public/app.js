@@ -45,11 +45,14 @@ const resetBtn = document.getElementById('reset-btn');
 let selectedFile = null;
 let fileCategory = null;
 let _ffmpeg = null;
+let _qualityPreviewTimer = null;
+const imageEstimatedSize = document.getElementById('image-estimated-size');
 
 // ── State reset ───────────────────────────────────────────────────────────────
 
 function resetState() {
   cleanupPanels();
+  clearTimeout(_qualityPreviewTimer);
 
   // Revoke any previous download blob URL to free memory;
   // revoking a non-blob href is harmless so errors are safely ignored.
@@ -65,6 +68,7 @@ function resetState() {
   resetBtn.classList.add('hidden');
   convertBtn.disabled = false;
   statusMsg.textContent = '';
+  if (imageEstimatedSize) imageEstimatedSize.textContent = '';
 }
 
 // ── Drop zone interactions ────────────────────────────────────────────────────
@@ -104,7 +108,7 @@ function handleFileSelected(file) {
   fileCategory = category;
   window._selectedPdfAction = null;
 
-  fileInfo.textContent = `Selected: ${file.name} (${formatBytes(file.size)}) — ${file.type || 'unknown'}`;
+  fileInfo.textContent = `Selected: ${file.name} (${_formatBytes(file.size)}) — ${file.type || 'unknown'}`;
   fileInfo.classList.remove('hidden');
 
   showEditPanel(category, file);
@@ -117,12 +121,6 @@ function handleFileSelected(file) {
   } else {
     optionsSection.classList.add('hidden');
   }
-}
-
-function formatBytes(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
 function populateFormats(category) {
@@ -163,6 +161,65 @@ function showOptionsSection(category) {
 function setProgress(pct) {
   progressBar.style.width = `${pct}%`;
 }
+
+// ── Image quality size preview ────────────────────────────────────────────────
+
+function updateImageEstimatedSize() {
+  if (!imageEstimatedSize) return;
+
+  if (typeof _imageCropper === 'undefined' || !_imageCropper) {
+    imageEstimatedSize.textContent = '';
+    return;
+  }
+
+  const format = targetFormatSelect.value;
+  const mime = getMime(format);
+  const quality = Math.min(100, Math.max(1, parseInt(document.getElementById('quality').value, 10) || 80));
+
+  const canvas = _imageCropper.getCroppedCanvas();
+  if (!canvas || canvas.width === 0 || canvas.height === 0) {
+    imageEstimatedSize.textContent = '';
+    return;
+  }
+
+  // Scale down to a thumbnail for fast estimation, then extrapolate full size
+  const MAX_THUMB_SIDE = 200;
+  const scaleFactor = Math.min(1, MAX_THUMB_SIDE / Math.max(canvas.width, canvas.height));
+  const tw = Math.max(1, Math.round(canvas.width * scaleFactor));
+  const th = Math.max(1, Math.round(canvas.height * scaleFactor));
+
+  const thumb = document.createElement('canvas');
+  thumb.width = tw;
+  thumb.height = th;
+  const ctx = thumb.getContext('2d');
+  if (format === 'jpeg' || format === 'jpg') {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, tw, th);
+  }
+  ctx.drawImage(canvas, 0, 0, tw, th);
+
+  thumb.toBlob((blob) => {
+    if (!blob) { imageEstimatedSize.textContent = ''; return; }
+    const fullPixels = canvas.width * canvas.height;
+    const thumbPixels = tw * th;
+    const estBytes = thumbPixels > 0
+      ? Math.round(blob.size * fullPixels / thumbPixels)
+      : blob.size;
+    imageEstimatedSize.textContent = 'ESTIMATED OUTPUT SIZE: ' + _formatBytes(estBytes);
+  }, mime, quality / 100);
+}
+
+document.getElementById('quality').addEventListener('input', function () {
+  clearTimeout(_qualityPreviewTimer);
+  _qualityPreviewTimer = setTimeout(updateImageEstimatedSize, 300);
+});
+
+targetFormatSelect.addEventListener('change', function () {
+  if (fileCategory === 'image') {
+    clearTimeout(_qualityPreviewTimer);
+    updateImageEstimatedSize();
+  }
+});
 
 // ── Image conversion via Canvas API ──────────────────────────────────────────
 

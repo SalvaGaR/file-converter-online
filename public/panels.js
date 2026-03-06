@@ -101,6 +101,11 @@ function renderImagePanel(file) {
         autoCropArea: 1,
         responsive: true,
         background: false,
+        ready: function () {
+          if (typeof updateImageEstimatedSize === 'function') {
+            updateImageEstimatedSize();
+          }
+        },
       });
     }
   };
