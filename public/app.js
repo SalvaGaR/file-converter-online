@@ -116,7 +116,7 @@ function handleFileSelected(file) {
   fileCategory = category;
   window._selectedPdfAction = null;
 
-  fileInfo.textContent = `Selected: ${file.name} (${formatBytes(file.size)}) — ${file.type || 'unknown'}`;
+  fileInfo.textContent = `Selected: ${file.name} (${_formatBytes(file.size)}) — ${file.type || 'unknown'}`;
   fileInfo.classList.remove('hidden');
 
   // Pre-fill output filename with the file's base name
@@ -137,12 +137,6 @@ function handleFileSelected(file) {
   } else {
     optionsSection.classList.add('hidden');
   }
-}
-
-function formatBytes(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
 function populateFormats(category) {
@@ -172,10 +166,39 @@ function showOptionsSection(category) {
     if (formatRow) formatRow.classList.add('hidden');
   } else {
     if (formatRow) formatRow.classList.remove('hidden');
-    if (category === 'image') imageOptions.classList.remove('hidden');
-    else if (category === 'video') videoOptions.classList.remove('hidden');
-    else if (category === 'audio') audioOptions.classList.remove('hidden');
+    if (category === 'image') {
+      imageOptions.classList.remove('hidden');
+      initImageQualitySlider();
+    } else if (category === 'video') {
+      videoOptions.classList.remove('hidden');
+    } else if (category === 'audio') {
+      audioOptions.classList.remove('hidden');
+    }
   }
+}
+
+// ── Image quality slider + estimated size ─────────────────────────────────────
+
+function initImageQualitySlider() {
+  const slider = document.getElementById('image-quality');
+  const valLabel = document.getElementById('image-quality-val');
+  const estSizeLabel = document.getElementById('image-estimated-size');
+
+  if (!slider || !selectedFile) return;
+
+  slider.value = DEFAULT_IMAGE_QUALITY;
+  if (valLabel) valLabel.textContent = String(DEFAULT_IMAGE_QUALITY);
+
+  function updateImageEstimatedSize() {
+    if (!estSizeLabel || !selectedFile) return;
+    const quality = parseInt(slider.value, 10) || DEFAULT_IMAGE_QUALITY;
+    if (valLabel) valLabel.textContent = String(quality);
+    const estimatedBytes = Math.round(selectedFile.size * (quality / 100));
+    estSizeLabel.textContent = 'ESTIMATED OUTPUT SIZE: ~' + _formatBytes(estimatedBytes);
+  }
+
+  slider.oninput = updateImageEstimatedSize;
+  updateImageEstimatedSize();
 }
 
 // ── Progress helper ───────────────────────────────────────────────────────────
@@ -550,7 +573,8 @@ async function startConversion() {
 
     if (fileCategory === 'image') {
       const format = targetFormatSelect.value;
-      const quality = DEFAULT_IMAGE_QUALITY;
+      const qualitySlider = document.getElementById('image-quality');
+      const quality = qualitySlider ? parseInt(qualitySlider.value, 10) || DEFAULT_IMAGE_QUALITY : DEFAULT_IMAGE_QUALITY;
       setProgress(10);
       statusMsg.textContent = 'CONVERTING IMAGE…';
       blob = await convertImage(selectedFile, format, quality);
