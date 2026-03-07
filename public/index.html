@@ -210,7 +210,14 @@
       </div>
 
       <!-- Image options -->
-      <div id="image-options" class="hidden"></div>
+      <div id="image-options" class="hidden">
+        <div class="field-row">
+          <label for="image-quality">QUALITY (1–100)</label>
+          <input type="range" id="image-quality" min="1" max="100" value="92" />
+          <span id="image-quality-val" class="slider-value">92</span>
+        </div>
+        <p id="image-estimated-size" class="info-text"></p>
+      </div>
 
       <!-- Video options -->
       <div id="video-options" class="hidden">
@@ -235,6 +242,7 @@
           <label for="audio-bitrate">AUDIO BITRATE (kbps, blank = auto)</label>
           <input type="number" id="audio-bitrate" placeholder="e.g. 192" min="32" />
         </div>
+        <p id="audio-estimated-size" class="info-text"></p>
       </div>
 
       <button id="convert-btn">CONVERT</button>

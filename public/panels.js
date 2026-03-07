@@ -7,6 +7,8 @@ let _waveSurfer = null;
 let _imageCropper = null;
 let _flipH = 1;
 let _flipV = 1;
+let _audioDuration = 0;
+let _videoDuration = 0;
 
 // Conversion constants
 const BITS_PER_BYTE = 8;
@@ -144,6 +146,28 @@ function renderAudioPanel(file) {
   const srInfo = document.getElementById('audio-samplerate-info');
   const metaTitle = document.getElementById('meta-title');
 
+  // Live estimated size in the options section
+  const audioBitrateInput = document.getElementById('audio-bitrate');
+  const estSizeLabel = document.getElementById('audio-estimated-size');
+
+  _audioDuration = 0;
+
+  function updateAudioEstimatedSize() {
+    if (!estSizeLabel || _audioDuration <= 0) return;
+    const abr = parseFloat(audioBitrateInput.value) || 0;
+    if (abr <= 0) {
+      estSizeLabel.textContent = '';
+      return;
+    }
+    const start = parseFloat(trimStart.value) || 0;
+    const end = parseFloat(trimEnd.value) || _audioDuration;
+    const duration = Math.max(0, end - start);
+    const bytes = (abr * BITS_PER_KILOBIT / BITS_PER_BYTE) * duration;
+    estSizeLabel.textContent = 'ESTIMATED OUTPUT SIZE: ' + _formatBytes(bytes);
+  }
+
+  if (audioBitrateInput) audioBitrateInput.oninput = updateAudioEstimatedSize;
+
   panel.classList.remove('hidden');
   metaTitle.value = file.name.replace(/\.[^.]+$/, '');
 
@@ -190,6 +214,7 @@ function renderAudioPanel(file) {
 
   _waveSurfer.on('ready', function () {
     const dur = _waveSurfer.getDuration();
+    _audioDuration = dur;
 
     trimStart.max = dur;
     trimEnd.max = dur;
@@ -246,11 +271,13 @@ function renderAudioPanel(file) {
     const start = parseFloat(this.value);
     const end = parseFloat(trimEnd.value);
     if (!isNaN(start) && start < end && _trimRegion) _trimRegion.update({ start: start });
+    updateAudioEstimatedSize();
   };
   trimEnd.oninput = function () {
     const end = parseFloat(this.value);
     const start = parseFloat(trimStart.value);
     if (!isNaN(end) && end > start && _trimRegion) _trimRegion.update({ end: end });
+    updateAudioEstimatedSize();
   };
 
   // Toggle waveform / spectrogram view
@@ -306,7 +333,7 @@ function renderVideoPanel(file) {
   const audioBitrateInput = document.getElementById('audio-bitrate-v');
   const estSizeLabel = document.getElementById('video-estimated-size');
 
-  let _videoDuration = 0;
+  _videoDuration = 0;
 
   function updateEstimatedSize() {
     if (!estSizeLabel || _videoDuration <= 0) return;
@@ -316,8 +343,11 @@ function renderVideoPanel(file) {
       estSizeLabel.textContent = '';
       return;
     }
+    const start = parseFloat(trimStart.value) || 0;
+    const end = parseFloat(trimEnd.value) || _videoDuration;
+    const duration = Math.max(0, end - start);
     const totalKbps = vbr + abr;
-    const bytes = (totalKbps * BITS_PER_KILOBIT / BITS_PER_BYTE) * _videoDuration;
+    const bytes = (totalKbps * BITS_PER_KILOBIT / BITS_PER_BYTE) * duration;
     estSizeLabel.textContent = 'ESTIMATED OUTPUT SIZE: ' + _formatBytes(bytes);
   }
 
@@ -345,9 +375,11 @@ function renderVideoPanel(file) {
   trimStart.oninput = function () {
     trimStartVal.textContent = parseFloat(this.value).toFixed(1);
     video.currentTime = parseFloat(this.value);
+    updateEstimatedSize();
   };
   trimEnd.oninput = function () {
     trimEndVal.textContent = parseFloat(this.value).toFixed(1);
+    updateEstimatedSize();
   };
 
   // Respect trim points
