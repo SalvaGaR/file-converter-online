@@ -468,3 +468,33 @@ input[type="text"] {
 .crop-controls {
   margin-bottom: var(--gap);
 }
+
+/* ── Office preview container ────────────────────────────── */
+
+.office-preview-container {
+  border: var(--border);
+  padding: var(--gap);
+  margin-bottom: var(--gap);
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--white);
+}
+
+.office-html-content {
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.office-html-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.office-html-content th,
+.office-html-content td {
+  border: 1px solid var(--black);
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+  text-align: left;
+}
