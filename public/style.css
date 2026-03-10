@@ -406,6 +406,18 @@ input[type="text"] {
   overflow: hidden;
 }
 
+/* ── Real-time spectrum canvas ───────────────────────────── */
+
+.spectrum-canvas {
+  display: block;
+  width: 100%;
+  height: 128px;
+  border: var(--border);
+  margin-bottom: var(--gap);
+  background: var(--white);
+  image-rendering: crisp-edges;
+}
+
 /* ── PDF preview thumbnails ──────────────────────────────── */
 
 .pdf-preview-container {

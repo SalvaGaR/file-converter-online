@@ -9,11 +9,14 @@ let _flipH = 1;
 let _flipV = 1;
 let _audioDuration = 0;
 let _videoDuration = 0;
+let _spectrumAnimId = null;
 
 // Conversion constants
 const BITS_PER_BYTE = 8;
 const BITS_PER_KILOBIT = 1000;
 const PDF_RENDER_BASE_SCALE = 1.5;
+const MAX_SPECTRUM_BARS = 128;
+const DEFAULT_SPECTRUM_WIDTH = 512;
 
 function _createURL(file) {
   const url = URL.createObjectURL(file);
@@ -24,6 +27,11 @@ function _createURL(file) {
 function cleanupPanels() {
   _objectURLs.forEach((u) => URL.revokeObjectURL(u));
   _objectURLs.length = 0;
+
+  if (_spectrumAnimId !== null) {
+    cancelAnimationFrame(_spectrumAnimId);
+    _spectrumAnimId = null;
+  }
 
   if (_waveSurfer) {
     _waveSurfer.destroy();
@@ -138,6 +146,7 @@ function renderAudioPanel(file) {
   const toggleBtn = document.getElementById('audio-view-toggle');
   const waveformEl = document.getElementById('waveform');
   const spectrogramEl = document.getElementById('spectrogram');
+  const spectrumCanvas = document.getElementById('spectrum-canvas');
   const trimStart = document.getElementById('audio-trim-start');
   const trimEnd = document.getElementById('audio-trim-end');
   const timeCounter = document.getElementById('audio-time-counter');
@@ -171,9 +180,55 @@ function renderAudioPanel(file) {
   panel.classList.remove('hidden');
   metaTitle.value = file.name.replace(/\.[^.]+$/, '');
 
+  // ── Spectrum helpers ────────────────────────────────────────────────────────
+
+  function _stopSpectrum() {
+    if (_spectrumAnimId !== null) {
+      cancelAnimationFrame(_spectrumAnimId);
+      _spectrumAnimId = null;
+    }
+  }
+
+  function _startSpectrum() {
+    _stopSpectrum();
+    const analyser = _waveSurfer && _waveSurfer.backend && _waveSurfer.backend.analyser;
+    if (!analyser || !spectrumCanvas) return;
+
+    analyser.fftSize = 2048;
+    const bufLen = analyser.frequencyBinCount;
+    const dataArr = new Uint8Array(bufLen);
+    const ctx2d = spectrumCanvas.getContext('2d');
+
+    function draw() {
+      _spectrumAnimId = requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(dataArr);
+
+      const W = spectrumCanvas.clientWidth || spectrumCanvas.width;
+      const H = spectrumCanvas.clientHeight || spectrumCanvas.height;
+      if (spectrumCanvas.width !== W) spectrumCanvas.width = W;
+      if (spectrumCanvas.height !== H) spectrumCanvas.height = H;
+
+      ctx2d.fillStyle = '#fff';
+      ctx2d.fillRect(0, 0, W, H);
+
+      const barCount = Math.min(bufLen, MAX_SPECTRUM_BARS);
+      const barW = Math.max(1, Math.floor(W / barCount));
+      for (let i = 0; i < barCount; i++) {
+        const barH = Math.round((dataArr[i] / 255) * H);
+        ctx2d.fillStyle = '#000';
+        ctx2d.fillRect(i * barW, H - barH, Math.max(1, barW - 1), barH);
+      }
+    }
+    draw();
+  }
+
+  // ── View toggle (waveform → spectrogram → spectrum → waveform) ──────────────
+
   // Reset view to waveform
   waveformEl.classList.remove('hidden');
   spectrogramEl.classList.add('hidden');
+  spectrumCanvas.classList.add('hidden');
+  _stopSpectrum();
   toggleBtn.textContent = 'VIEW: SPECTROGRAM';
 
   // Destroy any previous WaveSurfer instance
@@ -280,16 +335,33 @@ function renderAudioPanel(file) {
     updateAudioEstimatedSize();
   };
 
-  // Toggle waveform / spectrogram view
+  // Toggle waveform / spectrogram / spectrum (3-state cycle)
   toggleBtn.onclick = function () {
     const showingWave = !waveformEl.classList.contains('hidden');
+    const showingSpectro = !spectrogramEl.classList.contains('hidden');
+
     if (showingWave) {
+      // waveform → spectrogram
       waveformEl.classList.add('hidden');
+      spectrumCanvas.classList.add('hidden');
       spectrogramEl.classList.remove('hidden');
+      _stopSpectrum();
+      toggleBtn.textContent = 'VIEW: SPECTRUM';
+    } else if (showingSpectro) {
+      // spectrogram → real-time spectrum
+      spectrogramEl.classList.add('hidden');
+      waveformEl.classList.add('hidden');
+      spectrumCanvas.classList.remove('hidden');
+      spectrumCanvas.width = spectrumCanvas.clientWidth || DEFAULT_SPECTRUM_WIDTH;
+      spectrumCanvas.height = 128;
+      if (_waveSurfer && _waveSurfer.isPlaying()) _startSpectrum();
       toggleBtn.textContent = 'VIEW: WAVEFORM';
     } else {
+      // spectrum → waveform
+      spectrumCanvas.classList.add('hidden');
       spectrogramEl.classList.add('hidden');
       waveformEl.classList.remove('hidden');
+      _stopSpectrum();
       toggleBtn.textContent = 'VIEW: SPECTROGRAM';
     }
   };
@@ -301,13 +373,19 @@ function renderAudioPanel(file) {
       _waveSurfer.seekTo(start / dur);
     }
     _waveSurfer.play();
+    if (!spectrumCanvas.classList.contains('hidden')) _startSpectrum();
   };
-  pauseBtn.onclick = function () { _waveSurfer.pause(); };
+  pauseBtn.onclick = function () {
+    _waveSurfer.pause();
+    _stopSpectrum();
+    // Leave one final frame drawn (no clear)
+  };
   stopBtn.onclick = function () {
     _waveSurfer.stop();
     const start = parseFloat(trimStart.value);
     const dur = _waveSurfer.getDuration();
     if (dur > 0) _waveSurfer.seekTo(start / dur);
+    _stopSpectrum();
   };
 }
 
